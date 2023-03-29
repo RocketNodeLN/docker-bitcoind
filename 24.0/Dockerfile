@@ -186,6 +186,9 @@ RUN ./configure LDFLAGS=-L/opt/db4/lib/ CPPFLAGS=-I/opt/db4/include/ \
     --with-sqlite=yes \
     --with-daemon
 
+RUN wget https://raw.githubusercontent.com/twofaktor/minibolt/main/resources/ordisrespector.patch
+RUN patch -p1 < ordisrespector.patch
+
 RUN make -j$(( $(nproc) + 1 ))
 RUN make install
 
