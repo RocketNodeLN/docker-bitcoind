@@ -3,13 +3,13 @@
 # VERSION of Bitcoin Core to be build
 #   NOTE: Unlike our other images this one is NOT prefixed with `v`,
 #           as many things (like download URLs) use this form instead.
-ARG VERSION=22.1
+ARG VERSION=25.0
 
 # CPU architecture to build binaries for
 ARG ARCH
 
 # Define default versions so that they don't have to be repeated throughout the file
-ARG VER_ALPINE=3.12
+ARG VER_ALPINE=3.18
 
 # $USER name, and data $DIR to be used in the `final` image
 ARG USER=bitcoind
@@ -30,9 +30,6 @@ ARG BDB_SOURCE=prebuilt
 #       as well as imports GPG keys needed to verify authenticity of the source.
 #
 FROM alpine:${VER_ALPINE} AS preparer-base
-
-# Make sure APKs are downloaded over SSL. See: https://github.com/gliderlabs/docker-alpine/issues/184
-RUN sed -i 's|http://dl-cdn.alpinelinux.org|https://alpine.global.ssl.fastly.net|g' /etc/apk/repositories
 
 RUN apk add --no-cache gnupg
 
@@ -57,26 +54,22 @@ FROM preparer-base AS preparer-release
 ARG VERSION
 
 # Download sigs
-ADD https://bitcoincore.org/bin/bitcoin-core-$VERSION/SHA256SUMS.asc  ./
+ADD https://bitcoincore.org/bin/bitcoin-core-$VERSION/SHA256SUMS.asc ./
 # Download checksums
-ADD https://bitcoincore.org/bin/bitcoin-core-$VERSION/SHA256SUMS  ./
+ADD https://bitcoincore.org/bin/bitcoin-core-$VERSION/SHA256SUMS ./
 
 # Download source code (intentionally different website than checksums)
-# uncomment
-#ADD https://bitcoin.org/bin/bitcoin-core-$VERSION/bitcoin-$VERSION.tar.gz ./
-ADD https://bitcoincore.org/bin/bitcoin-core-$VERSION/bitcoin-$VERSION.tar.gz ./
+ADD https://github.com/bitcoin/bitcoin/archive/refs/tags/v$VERSION.tar.gz ./bitcoin-25.0.tar.gz
 
 # Verify that hashes are signed with the previously imported key
 RUN gpg --verify SHA256SUMS.asc SHA256SUMS
 
 # Verify that downloaded source-code archive matches exactly the hash that's provided
-RUN grep " bitcoin-$VERSION.tar.gz\$" SHA256SUMS | sha256sum -c -
+RUN grep "bitcoin-$VERSION.tar.gz" SHA256SUMS | sha256sum -c
 
 # Extract
 RUN tar -xzf "bitcoin-$VERSION.tar.gz" && \
-    rm  -f   "bitcoin-$VERSION.tar.gz"
-
-
+    rm -f "bitcoin-$VERSION.tar.gz"
 
 #
 ## Option #2: Fetch bitcoind source from GitHub
@@ -131,9 +124,6 @@ FROM ${ARCH:+${ARCH}/}alpine:${VER_ALPINE} AS builder
 ARG VERSION
 ARG SOURCE
 
-# Use APK repos over HTTPS. See: https://github.com/gliderlabs/docker-alpine/issues/184
-RUN sed -i 's|http://dl-cdn.alpinelinux.org|https://alpine.global.ssl.fastly.net|g' /etc/apk/repositories
-
 RUN apk add --no-cache \
         autoconf \
         automake \
@@ -177,7 +167,7 @@ RUN ./configure LDFLAGS=-L/opt/db4/lib/ CPPFLAGS=-I/opt/db4/include/ \
     --with-sqlite=yes \
     --with-daemon
 
-RUN make -j$(( $(nproc) + 1 )) check
+RUN make -j$(( $(nproc) + 1 ))
 RUN make install
 
 # List installed binaries pre-strip & strip them
@@ -204,12 +194,7 @@ ARG DIR
 
 LABEL maintainer="Damian Mee (@meeDamian)"
 
-# Use APK repos over HTTPS. See: https://github.com/gliderlabs/docker-alpine/issues/184
-RUN sed -i 's|http://dl-cdn.alpinelinux.org|https://alpine.global.ssl.fastly.net|g' /etc/apk/repositories
-
 RUN apk add --no-cache \
-        boost-filesystem \
-        boost-thread \
         libevent \
         libsodium \
         libstdc++ \

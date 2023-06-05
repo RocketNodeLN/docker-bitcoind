@@ -3,7 +3,7 @@
 # VERSION of Bitcoin Core to be build
 #   NOTE: Unlike our other images this one is NOT prefixed with `v`,
 #           as many things (like download URLs) use this form instead.
-ARG VERSION=24.0.1
+ARG VERSION=24.1
 
 # CPU architecture to build binaries for
 ARG ARCH
@@ -220,8 +220,6 @@ LABEL maintainer="Damian Mee (@meeDamian)"
 RUN sed -i 's|http://dl-cdn.alpinelinux.org|https://alpine.global.ssl.fastly.net|g' /etc/apk/repositories
 
 RUN apk add --no-cache \
-        boost-filesystem \
-        boost-thread \
         libevent \
         libsodium \
         libstdc++ \
